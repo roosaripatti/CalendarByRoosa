@@ -9,7 +9,7 @@ object CalendarGUI extends JFXApp3:
   def start() =
 
     stage = new JFXApp3.PrimaryStage:
-      title = "My Cute Calendar"
+      title = "My Calendar"
       width = 600
       height = 450
 
