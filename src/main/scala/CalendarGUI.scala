@@ -4,12 +4,12 @@ import scalafx.scene.layout.Pane
 import scalafx.scene.shape.Rectangle
 import scalafx.scene.paint.Color._
 
-object Main extends JFXApp3:
+object CalendarGUI extends JFXApp3:
 
   def start() =
 
     stage = new JFXApp3.PrimaryStage:
-      title = "UniqueProjectName"
+      title = "My Cute Calendar"
       width = 600
       height = 450
 
@@ -29,5 +29,5 @@ object Main extends JFXApp3:
 
   end start
 
-end Main
+end CalendarGUI
 
