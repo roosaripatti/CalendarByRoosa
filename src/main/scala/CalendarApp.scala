@@ -1,9 +1,10 @@
 import scala.collection.mutable.Buffer
 
 class CalendarApp {
-  private val allEvents: Buffer[Event] = ???
-  private val categories: Buffer[Category] = ???
-  private val currentView: CalendarView = ???
+  private val allEvents: Buffer[Event] = Buffer[Event]()
+  private val categories: Buffer[Category] = Buffer[Category]()
+  private val currentView: CalendarView = CalendarView()
+  private var currentTime = ???
 
   def changeView(wantedView: CalendarView): Unit = ???
   def addEvent(newEvent: Event): Boolean = ???

@@ -4,3 +4,4 @@ class Category(name: String, color: Color) {
   def getName = this.name
   def getColor = this.color
 }
+

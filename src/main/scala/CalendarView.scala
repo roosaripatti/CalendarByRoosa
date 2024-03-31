@@ -10,3 +10,10 @@ case class CalendarView():
   def getReminders: Buffer[Event] = ???
 
 end CalendarView
+
+class WeeklyView extends CalendarView
+
+class MonthlyView extends CalendarView
+
+class DailyView extends CalendarView
+  
