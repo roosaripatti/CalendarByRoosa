@@ -7,15 +7,29 @@ class CalendarApp {
   private var currentTime = ???
 
   def changeView(wantedView: CalendarView): Unit = ???
-  def addEvent(newEvent: Event): Boolean = ???
-  def deleteEvent(deletedEvent: Event): Boolean = ???
-  def getAllEvents: Buffer[Event] = ???
-  def addCategory(category: Category): Unit = ???
+
+  def addEvent(newEvent: Event): Unit =
+    this.allEvents += newEvent
+
+  def deleteEvent(deletedEvent: Event): Unit =
+    this.allEvents.remove(this.allEvents.indexOf(deletedEvent))
+
+  def getAllEvents: Buffer[Event] = this.allEvents
+
+  def addCategory(category: Category): Unit =
+    // luo uusi kategoria nimeltä category
+    this.categories += category
+
   def eventsFromFiles(file: String): Unit = ???
   def eventsToFiles(event: Event, file: String): Unit = ???
-  def filterEvents(category: Category): Buffer[Event] = ???
+
+  def filterEvents(category: Category): Buffer[Event] =
+    allEvents.filter(_.getCategory == category)
+
   def sortByTheme(theme: String): Buffer[Event] = ???
-  def sendReminder(event: Event): Boolean = ???
-  def eventsByCategories: Map[Category, Event] = ???
+
+  def eventsByCategories: Map[Option[Category], Event] =
+    val currentCategories = allEvents.map(_.getCategory)
+    currentCategories.zip(allEvents).toMap
   
 }
