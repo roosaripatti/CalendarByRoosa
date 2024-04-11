@@ -6,19 +6,22 @@ import java.time.format.DateTimeFormatter
 
 
 class CalendarApp {
-  private val allEvents: Buffer[Event] = Buffer[Event]()
-  private val categories: Buffer[Category] = Buffer[Category]()
-  private var currentView: CalendarView = ???
-
+  
   private var currentDateTime = LocalDateTime.now
   private var currentDate = LocalDate.now
   private var currentMonth = LocalDate.now
 
-  val dateStr = "2021-06-13"
-  val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  val localDate = LocalDate.parse(dateStr, formatter)
-  println(localDate.getDayOfWeek) // prints "SUNDAY"
+  // TESTS , IGNORE THESE.
+  // val dateStr = "2021-06-13"
+  //val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  //val localDate = LocalDate.parse(dateStr, formatter)
+  //println(localDate.getDayOfWeek) // prints "SUNDAY"
+  /**
+  private var allEvents: Buffer[Event] = Buffer[Event]()
+  private val categories: Buffer[Category] = Buffer[Category]()
+  private var currentView: CalendarView = ???
 
+  
   def addEvent(newEvent: Event): Unit =
     this.allEvents += newEvent
 
@@ -41,6 +44,6 @@ class CalendarApp {
 
   def eventsByCategories: Map[Option[Category], Event] =
     val currentCategories = allEvents.map(_.getCategory)
-    currentCategories.zip(allEvents).toMap
+    currentCategories.zip(allEvents).toMap */
   
 }
