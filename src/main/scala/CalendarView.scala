@@ -1,19 +1,37 @@
 import scala.collection.mutable.Buffer
+import java.time.LocalDateTime
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
-case class CalendarView():
-  var currentTime = ???
-  val events: Buffer[Event] = ???
-  val startTime = ???
-  val endTime = ???
+abstract class CalendarView:
+  var currentTime = LocalDateTime.now
+  var currentDate = LocalDate.now
+  var currentMonth = currentTime.getMonth
 
-  def getEvents: Buffer[Event] = this.events
-  def getReminders: Buffer[Event] = ???
+  val startTime: LocalDate
+  val endTime: LocalDate
 
 end CalendarView
 
-class WeeklyView extends CalendarView
+class WeeklyView extends CalendarView:
+  val startTime = currentDate.`with`(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+  val endTime = currentDate.`with`(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
 
-class MonthlyView extends CalendarView
+  val startDayNumber = startTime.getDayOfMonth
+  val endDayNumber = endTime.getDayOfMonth
 
-class DailyView extends CalendarView
-  
+class MonthlyView extends CalendarView:
+  val startTime = currentDate.`with`(TemporalAdjusters.firstDayOfMonth())
+  val endTime = currentDate.`with`(TemporalAdjusters.lastDayOfMonth())
+
+  val firstDayOfWeek = startTime.getDayOfWeek
+  val firstDayOfMonth = endTime.getDayOfMonth
+end MonthlyView
+
+
+class DailyView extends CalendarView:
+  val startTime = ???
+  val endTime = ???
+end DailyView
+

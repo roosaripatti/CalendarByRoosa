@@ -15,3 +15,7 @@ Time spent on the project so far:
 What next?
 - File reader
 - Using and showing current date and time in calendar
+
+Questions
+- For design purposes I'm planning to just list the events on the weekly view (no hours shown), 
+and the daily view would show the events hour by hour. Is this ok?
