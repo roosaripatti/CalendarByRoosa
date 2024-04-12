@@ -2,17 +2,18 @@ import scalafx.application.JFXApp3
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Scene
 import scalafx.scene.image.{Image, ImageView}
-import scalafx.scene.layout.{Background, ColumnConstraints, GridPane, HBox, RowConstraints, VBox, Border}
-import scalafx.scene.control.{Label, Button, Menu, MenuItem, MenuBar}
+import scalafx.scene.layout.{Background, Border, ColumnConstraints, GridPane, HBox, RowConstraints, VBox}
+import scalafx.scene.control.{Button, Label, Menu, MenuBar, MenuItem, TextField}
 import scalafx.scene.paint.Color.*
 import scalafx.scene.paint.Color
-import scalafx.scene.text.{Font, FontWeight, FontPosture}
+import scalafx.scene.text.{Font, FontPosture, FontWeight}
 import scalafx.scene.input.MouseEvent
+
 import java.time.format.DateTimeFormatter
 
 object CalendarGUI extends JFXApp3:
 
-  val calendarApp = CalendarApp()
+  val calendarData = CalendarData()
   val weeklyView = CalendarView()
 
   def start() =
@@ -41,7 +42,7 @@ object CalendarGUI extends JFXApp3:
       padding = Insets(40, 0, 40, 0)
       spacing = 40
     val timeBox = VBox()
-    val menuBox =  VBox()
+    val menuBox =  HBox()
     // weekdays containers
     val monday = new VBox:
        margin = Insets(2, 2, 35, 2)
@@ -116,7 +117,7 @@ object CalendarGUI extends JFXApp3:
     val mainMenuBar = new MenuBar:
       menus = Array(mainMenu)
 
-
+// creating the items for the daily view
     val goBackBox = new VBox()
     val dailyTimeHead = new VBox():
       border = Border.stroke(Black)
@@ -330,6 +331,48 @@ object CalendarGUI extends JFXApp3:
 
     rootDay.columnConstraints = Array(goBackColumn, dailyTimeColumn, dailyContentColumn, dailyMenuColumn) // Add constraints in order
     rootDay.rowConstraints = Array(dailyHeaderRow, dailyContentRow)
+
+    // creating the items for the add event scene
+
+    val eventBox = VBox()
+    val eventHeader = Label("Add an event")
+
+    val eventNameHeader = Label("Name of your event*")
+    val eventName = TextField()
+    eventName.promptText = "Name of your event*"
+    val eventStartHeader = Label("Starting time of your event*")
+    val eventStart = TextField()
+    eventStart.promptText = "Starting time of your event*"
+    val eventEndHeader = Label("Ending time of your event*")
+    val eventEnd = TextField()
+    eventEnd.promptText = "Ending time of your event*"
+    val eventCategoryHeader = Label("Category of your event")
+    val eventCategory = TextField()
+    eventCategory.promptText = "Category of the event"
+    val eventNotesHeader = Label("Additional information")
+    val eventNotes = TextField()
+    eventNotes.promptText = "Additional information"
+    val saveAndAddButton = new Button("Save event"):
+      onAction = _ =>
+        calendarData.addEvent(Event(eventName.text(), eventStart.text(), eventEnd.text(), Some(eventCategory.text()), Some(eventNotes.text())))
+        stage.scene = startScene
+    val eventGoBackButton = new Button("Cancel"):
+      onAction = _ => stage.scene = startScene
+
+    rootEvent.add(eventBox,0,0,1,1)
+    eventBox.children.add(eventHeader)
+    eventBox.children.add(eventNameHeader)
+    eventBox.children.add(eventName)
+    eventBox.children.add(eventStartHeader)
+    eventBox.children.add(eventStart)
+    eventBox.children.add(eventEndHeader)
+    eventBox.children.add(eventEnd)
+    eventBox.children.add(eventCategoryHeader)
+    eventBox.children.add(eventCategory)
+    eventBox.children.add(eventNotesHeader)
+    eventBox.children.add(eventNotes)
+    eventBox.children.add(saveAndAddButton)
+    eventBox.children.add(eventGoBackButton)
 
 
   end start
