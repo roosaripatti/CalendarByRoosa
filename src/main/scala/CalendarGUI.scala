@@ -1,9 +1,11 @@
+import javafx.collections.FXCollections
+import scalafx.Includes._
 import scalafx.application.JFXApp3
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Scene
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{Background, Border, ColumnConstraints, GridPane, HBox, RowConstraints, VBox}
-import scalafx.scene.control.{Button, CheckBox, Label, Menu, MenuBar, MenuItem, ScrollPane, TextField}
+import scalafx.scene.control.{Button, CheckBox, ChoiceBox, ComboBox, Label, Menu, MenuBar, MenuItem, ScrollPane, TextField}
 import scalafx.scene.paint.Color.*
 import scalafx.scene.paint.Color
 import scalafx.scene.text.{Font, FontPosture, FontWeight}
@@ -17,13 +19,15 @@ object CalendarGUI extends JFXApp3:
   // creates the objects containing the calendar data and the view
   val calendarData = CalendarData()
   val weeklyView = CalendarView()
+  val fileReader = FileReader
+  val openSansFont = Font("Open Sans", 10)
 
   def start() =
 
     // sets the view and its size
     stage = new JFXApp3.PrimaryStage:
       title = "Calendar by Roosa"
-      width = 1000
+      width = 1400
       height = 850
 
     // sets the view as a grid
@@ -40,8 +44,8 @@ object CalendarGUI extends JFXApp3:
 
     // creates the rows and columns of the weekly view as boxes
     val headerBox = new HBox:
-      padding = Insets(40, 0, 40, 0)
-      spacing = 40
+      padding = Insets(40, 0, 20, 0)
+      spacing = 20
     val timeBox = VBox()
     val menuBox =  HBox()
     // weekdays containers
@@ -66,6 +70,10 @@ object CalendarGUI extends JFXApp3:
     val sunday = new VBox():
       margin = Insets(2, 2, 35, 2)
       border = Border.stroke(Black)
+    val reminder = new VBox():
+      margin = Insets(2, 2, 35, 2)
+      border = Border.stroke(Black)
+
     // week headers containers
     val mondayHead = new VBox():
       margin = Insets(2)
@@ -95,6 +103,10 @@ object CalendarGUI extends JFXApp3:
       margin = Insets(2)
       background = Background.fill(Color.rgb(226,200,246))
       border = Border.stroke(Black)
+    val reminderHead = new VBox():
+      margin = Insets(2)
+      background = Background.fill(LightSkyBlue)
+      border = Border.stroke(Black)
     // creates the header label
     val headerText = Label(s"${weeklyView.currentMonth} WEEK ${weeklyView.weekNumber}")
     // menu symbol
@@ -113,8 +125,9 @@ object CalendarGUI extends JFXApp3:
       friday.children.clear()
       saturday.children.clear()
       sunday.children.clear()
+      reminder.children.clear()
 
-      for (event <- calendarData.currentEvents) do
+      for (event <- calendarData.currentEvents ++ calendarData.publicHolidays) do
         val eventStartingDate = LocalDate.parse(event.getStart, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         val eventEndingDate = LocalDate.parse(event.getEnd, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
 
@@ -122,14 +135,25 @@ object CalendarGUI extends JFXApp3:
           val startingDayOfWeek = eventStartingDate.getDayOfWeek
           val eventName = event.getName
 
+          val label = new Label(s"${eventName}"):
+            margin = Insets(2)
+          label.setFont(openSansFont)
+
           startingDayOfWeek match
-            case DayOfWeek.MONDAY    => monday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.TUESDAY   => tuesday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.WEDNESDAY => wednesday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.THURSDAY  => thursday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.FRIDAY    => friday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.SATURDAY  => saturday.children.add(Label(s"${eventName}"))
-            case DayOfWeek.SUNDAY    => sunday.children.add(Label(s"${eventName}"))
+            case DayOfWeek.MONDAY    => monday.children.add(label)
+            case DayOfWeek.TUESDAY   => tuesday.children.add(label)
+            case DayOfWeek.WEDNESDAY => wednesday.children.add(label)
+            case DayOfWeek.THURSDAY  => thursday.children.add(label)
+            case DayOfWeek.FRIDAY    => friday.children.add(label)
+            case DayOfWeek.SATURDAY  => saturday.children.add(label)
+            case DayOfWeek.SUNDAY    => sunday.children.add(label)
+
+          if (event.getReminder) then
+            val reminderLabel = new Label(s"Remember to do the task:\n  ${eventName}"):
+              margin = Insets(2)
+            reminderLabel.setFont(openSansFont)
+            reminder.children.add(reminderLabel)
+
 
 
     // creates the menu items
@@ -197,7 +221,14 @@ object CalendarGUI extends JFXApp3:
         val hour = startingTime.getHour
         val slotContainer = dailyContentBoxes(hour - 1)
 
-        slotContainer.setStyle("-fx-background-color: LightBlue")
+        event.getCategory match
+          case Some(category) =>
+            val color = category.getColor
+            val colorString = s"rgb(${color.getRed * 255},${color.getGreen * 255},${color.getBlue * 255})"
+            slotContainer.setStyle(s"-fx-background-color: $colorString")
+          case None =>
+            slotContainer.setStyle("-fx-background-color: LightBlue")
+
         val label = new Label(event.getName)
         slotContainer.getChildren.add(label))
 
@@ -254,6 +285,8 @@ object CalendarGUI extends JFXApp3:
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
+    val remindersText = Label("reminders of")
+    val remindersText2 = Label("this week")
 
     val weekButton =  Label("week  " + weeklyView.weekNumber + " of " + weeklyView.currentYear)
 
@@ -290,6 +323,7 @@ object CalendarGUI extends JFXApp3:
     fridayHead.setAlignment(Pos.Center)
     saturdayHead.setAlignment(Pos.Center)
     sundayHead.setAlignment(Pos.Center)
+    reminderHead.setAlignment(Pos.Center)
 
     // inheritances
     headerBox.children.addAll(headerText, leftButton, weekButton, rightButton)
@@ -301,18 +335,20 @@ object CalendarGUI extends JFXApp3:
     fridayHead.children.add(fridayText)
     saturdayHead.children.add(saturdayText)
     sundayHead.children.add(sundayText)
+    reminderHead.children.add(remindersText)
+    reminderHead.children.add(remindersText2)
 
     // ratios of the boxes in the view
     val timeColumn = new ColumnConstraints:
       percentWidth = 8
     val weekDayColumn = new ColumnConstraints:
-      percentWidth = 11
+      percentWidth = 10
     val menuColumn = new ColumnConstraints:
       percentWidth = 15
     val headerRow = new RowConstraints:
       percentHeight = 27
     val weekRow = new RowConstraints:
-      percentHeight = 65
+      percentHeight = 70
     val weekLabelRow = new RowConstraints:
       percentHeight = 8
 
@@ -328,6 +364,7 @@ object CalendarGUI extends JFXApp3:
     rootWeek.add(friday, 5, 2, 1, 1)
     rootWeek.add(saturday, 6, 2, 1, 1)
     rootWeek.add(sunday, 7, 2, 1, 1)
+    rootWeek.add(reminder, 8, 2, 1, 1)
 
     rootWeek.add(mondayHead, 1, 1)
     rootWeek.add(tuesdayHead, 2, 1)
@@ -336,9 +373,10 @@ object CalendarGUI extends JFXApp3:
     rootWeek.add(fridayHead, 5, 1)
     rootWeek.add(saturdayHead, 6, 1)
     rootWeek.add(sundayHead, 7, 1)
+    rootWeek.add(reminderHead, 8, 1)
 
     // adds the rows and columns in the right order in the weekly root
-    rootWeek.columnConstraints = Array(timeColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, menuColumn) // Add constraints in order
+    rootWeek.columnConstraints = Array(timeColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, weekDayColumn, menuColumn) // Add constraints in order
     rootWeek.rowConstraints = Array(headerRow, weekLabelRow, weekRow)
 
     // styles the texts
@@ -352,6 +390,8 @@ object CalendarGUI extends JFXApp3:
     fridayText.font = Font.font("Open sans", 10)
     saturdayText.font = Font.font("Open sans", 10)
     sundayText.font = Font.font("Open sans", 10)
+    remindersText.font = Font.font("Open sans", 10)
+    remindersText2.font = Font.font("Open sans", 10)
 
     // setting the "go back" button
     val goBackImage = ImageView(Image("file:src/resources/icons/back-button.png"))
@@ -497,9 +537,15 @@ object CalendarGUI extends JFXApp3:
     val eventEndTime = TextField()
     eventEndTime.promptText = "Ending time of your event*"
 
-    val eventCategoryHeader = Label("Category of your event")
-    val eventCategory = TextField()
-    eventCategory.promptText = "Category of the event"
+    val categoryHeader = Label("Choose the category of your event")
+    var categoryNames = calendarData.currentCategories.map(_.getName) += "new category (write below)"
+    val categoryChoiceBox = new ChoiceBox[String]:
+      items = categoryNames
+    var chosenCategory: Option[Category] = None
+
+    val newEventCategory = TextField()
+    newEventCategory.promptText = "Create a new category and add the new event to it by writing the name of the new category here"
+
     val eventNotesHeader = Label("Additional information")
     val eventNotes = TextField()
     eventNotes.promptText = "Additional information"
@@ -507,21 +553,66 @@ object CalendarGUI extends JFXApp3:
     val reminderHeader = Label("Do you want to be reminded of the event one hour prior to its start?")
     val reminderCheckBox = CheckBox("I want a reminder")
     var reminderBoolean = false
-    reminderCheckBox.selectedProperty().addListener((_, _, newValue) =>
-      reminderBoolean = newValue)
+    reminderCheckBox.selectedProperty().addListener((_, _, newValue) => reminderBoolean = newValue)
 
+
+    def updateAddEventWindow(): Unit =
+      // clearing the text areas will be done in the final calendar but easier to test like this
+      //eventName.text = ""
+      //eventStart.text = ""
+      //eventEnd.text = ""
+      //eventStartTime.text = ""
+      //eventEndTime.text = ""
+      //eventNotes.text = ""
+      newEventCategory.text = ""
+      //reminderCheckBox.selected = false
 
     val saveAndAddButton = new Button("Save event"):
       onAction = _ =>
-        val newEvent = Event(eventName.text(), eventStart.text(), eventEnd.text(), eventStartTime.text(), eventEndTime.text(), Some(eventCategory.text()), Some(eventNotes.text()), reminderBoolean)
+
+        newEventCategory.text() match
+          case "" =>
+            val category = categoryChoiceBox.getSelectionModel.getSelectedItem
+            if (category != null) then
+              val categoryColor = calendarData.categoriesMap(category)
+              chosenCategory = Some(Category(category, categoryColor))
+            else chosenCategory = None
+          case newValue =>
+            chosenCategory = Some(Category(newValue, LightBlue))
+            calendarData.addCategory(chosenCategory)
+            categoryNames += newValue
+            categoryChoiceBox.items = categoryNames
+            // nykyisellään ei lisää categories bufferiin,ei käytä addCategory-funktiota, pelkästään lisää items listaan, pitääkö korjata?
+
+        val newEvent = Event(eventName.text(), eventStart.text(), eventEnd.text(), eventStartTime.text(), eventEndTime.text(), chosenCategory, Some(eventNotes.text()), reminderBoolean)
         calendarData.addEvent(newEvent)
+        updateAddEventWindow()
         stage.scene = startScene
         updateEventsOnWeeklyView()
     val eventGoBackButton = new Button("Cancel"):
       onAction = _ => stage.scene = startScene
 
     rootEvent.add(eventBox, 0, 0, 1, 1)
-    eventBox.children.addAll(eventHeader,eventNameHeader,eventName,eventStartHeader,eventStart,eventStartTimeHeader,eventStartTime,eventEndHeader,eventEnd,eventEndTimeHeader,eventEndTime,eventCategoryHeader,eventCategory,eventNotesHeader,eventNotes,reminderHeader, reminderCheckBox, saveAndAddButton,eventGoBackButton)
+    eventBox.children.addAll(eventHeader,
+      eventNameHeader,
+      eventName,
+      eventStartHeader,
+      eventStart,
+      eventStartTimeHeader,
+      eventStartTime,
+      eventEndHeader,
+      eventEnd,
+      eventEndTimeHeader,
+      eventEndTime,
+      categoryHeader,
+      categoryChoiceBox,
+      newEventCategory,
+      eventNotesHeader,
+      eventNotes,
+      reminderHeader,
+      reminderCheckBox,
+      saveAndAddButton,
+      eventGoBackButton)
 
   end start
 
