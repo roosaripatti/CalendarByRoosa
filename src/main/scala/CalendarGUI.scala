@@ -1,15 +1,14 @@
-import javafx.collections.FXCollections
-import scalafx.Includes._
+
 import scalafx.application.JFXApp3
+import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Scene
 import scalafx.scene.image.{Image, ImageView}
-import scalafx.scene.layout.{Background, Border, ColumnConstraints, GridPane, HBox, RowConstraints, VBox}
-import scalafx.scene.control.{Button, CheckBox, ChoiceBox, ComboBox, Label, Menu, MenuBar, MenuItem, ScrollPane, TextField}
+import scalafx.scene.layout.{Background, BackgroundFill, Border, ColumnConstraints, GridPane, HBox, RowConstraints, VBox}
+import scalafx.scene.control.{Button, CheckBox, ChoiceBox, Label, Menu, MenuBar, MenuItem, TextField}
 import scalafx.scene.paint.Color.*
 import scalafx.scene.paint.Color
-import scalafx.scene.text.{Font, FontPosture, FontWeight}
-import scalafx.scene.input.MouseEvent
+import scalafx.scene.text.Font
 
 import java.time.{DayOfWeek, LocalDate}
 import java.time.format.DateTimeFormatter
@@ -19,8 +18,8 @@ object CalendarGUI extends JFXApp3:
   // creates the objects containing the calendar data and the view
   val calendarData = CalendarData()
   val weeklyView = CalendarView()
-  val fileReader = FileReader
   val openSansFont = Font("Open Sans", 10)
+  var eventNames = calendarData.eventsMap.keys
 
   def start() =
 
@@ -35,10 +34,12 @@ object CalendarGUI extends JFXApp3:
     val rootDay = GridPane()
     val rootMonth = GridPane()
     val rootEvent = GridPane()
+    val rootDeleteEvent = GridPane()
 
     val startScene = Scene(parent = rootWeek)
     val dayScene = Scene(parent = rootDay)
     val eventScene = Scene(parent = rootEvent)
+    val deleteScene = Scene(parent = rootDeleteEvent)
 
     stage.scene = startScene
 
@@ -127,34 +128,43 @@ object CalendarGUI extends JFXApp3:
       sunday.children.clear()
       reminder.children.clear()
 
+      val weekdays = Array(monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+
       for (event <- calendarData.currentEvents ++ calendarData.publicHolidays) do
         val eventStartingDate = LocalDate.parse(event.getStart, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         val eventEndingDate = LocalDate.parse(event.getEnd, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
 
-        if (!eventStartingDate.isBefore(weeklyView.startTime) && !eventEndingDate.isAfter(weeklyView.endTime))
-          val startingDayOfWeek = eventStartingDate.getDayOfWeek
-          val eventName = event.getName
+        val startingDayOfWeek = eventStartingDate.getDayOfWeek
+        val endingDayOfWeek = eventEndingDate.getDayOfWeek
+        var categoryColor = MintCream
 
-          val label = new Label(s"${eventName}"):
-            margin = Insets(2)
-          label.setFont(openSansFont)
+        event.getCategory match
+          case Some(category) =>
+            categoryColor = category.getColor
+          case None =>
+            categoryColor = MintCream
 
-          startingDayOfWeek match
-            case DayOfWeek.MONDAY    => monday.children.add(label)
-            case DayOfWeek.TUESDAY   => tuesday.children.add(label)
-            case DayOfWeek.WEDNESDAY => wednesday.children.add(label)
-            case DayOfWeek.THURSDAY  => thursday.children.add(label)
-            case DayOfWeek.FRIDAY    => friday.children.add(label)
-            case DayOfWeek.SATURDAY  => saturday.children.add(label)
-            case DayOfWeek.SUNDAY    => sunday.children.add(label)
+    // Iterate through each day between starting and ending date
+        var currentDate = eventStartingDate
+        while (!currentDate.isAfter(eventEndingDate)) do
+          if (!currentDate.isBefore(weeklyView.startTime) && !currentDate.isAfter(weeklyView.endTime)) then
+           val dayOfWeek = currentDate.getDayOfWeek
+           val eventName = event.getName
 
-          if (event.getReminder) then
-            val reminderLabel = new Label(s"Remember to do the task:\n  ${eventName}"):
-              margin = Insets(2)
-            reminderLabel.setFont(openSansFont)
-            reminder.children.add(reminderLabel)
+           val label = new Label(s"${eventName}"):
+             margin = Insets(2)
+             background = new Background(Array(new BackgroundFill(categoryColor, null, null)))
+           label.setFont(openSansFont)
 
+           weekdays(dayOfWeek.getValue - 1).children.add(label)
 
+           if (event.getReminder) then
+             val reminderLabel = new Label(s"Remember to do the task:\n  ${eventName}"):
+                margin = Insets(2)
+             reminderLabel.setFont(openSansFont)
+             reminder.children.add(reminderLabel)
+
+          currentDate = currentDate.plusDays(1) // Move to the next day
 
     // creates the menu items
     val menuItemDay = new MenuItem("Day"):
@@ -164,12 +174,19 @@ object CalendarGUI extends JFXApp3:
       onAction = _ =>
         stage.scene = startScene
         updateEventsOnWeeklyView()
-    val menuItemMonth = new MenuItem("Month"):
+    //val menuItemMonth = new MenuItem("Month"):
+      //onAction = _ =>
+       // stage.scene = new Scene(rootMonth)
+    val menuItemAdd = new MenuItem("Add event"):
       onAction = _ =>
-        stage.scene = new Scene(rootMonth)
+        stage.scene = eventScene
+    val menuItemDelete = new MenuItem("Delete event"):
+      onAction = _ =>
+        eventNames = calendarData.eventsMap.keys
+        stage.scene = deleteScene
     // creates the main menu
     val mainMenu = new Menu("", menuImage):
-      items = Array(menuItemDay, menuItemWeek, menuItemMonth)
+      items = Array(menuItemDay, menuItemWeek, menuItemAdd, menuItemDelete)
     val mainMenuBar = new MenuBar:
       menus = Array(mainMenu)
 
@@ -181,13 +198,13 @@ object CalendarGUI extends JFXApp3:
       border = Border.stroke(Black)
     val dailyMenuBox = new VBox()
 
-    val dailyTimeBoxes = Array.fill(24)(new HBox {
+    val dailyTimeBoxes = Array.fill(25)(new HBox {
       border = Border.stroke(Black)
       alignment = Pos.Center})
 
 // Assign individual variables to each daily time box
 
-    val dailyContentBoxes = Array.fill(24)(new HBox {
+    val dailyContentBoxes = Array.fill(25)(new HBox {
       border = Border.stroke(Black)})
 
     // styling the header boxes in daily view
@@ -207,30 +224,46 @@ object CalendarGUI extends JFXApp3:
     def updateDailyHeaderText() =
       dailyHeaderText.text = s"${weeklyView.chosenWeekday} ${weeklyView.chosenDayString}"
 
-    def updateEventsOnDailyView(chosenDay: LocalDate): Unit =
-      for hour <- 0 until 23 do
-          val slotContainer = dailyContentBoxes(hour)
-          slotContainer.setStyle("")
-          slotContainer.getChildren.clear()
 
+
+    def updateEventsOnDailyView(chosenDay: LocalDate): Unit =
+      // Clear all containers
+      for hour <- 0 to 24 do
+        val slotContainer = dailyContentBoxes(hour)
+        slotContainer.setStyle("")
+        slotContainer.getChildren.clear()
+
+  // Filter events for the chosen day
       val filteredEvents = calendarData.currentEvents.filter(event =>
         LocalDate.parse(event.getStart, DateTimeFormatter.ofPattern("dd.MM.yyyy")).isEqual(chosenDay))
+
+  // Iterate over filtered events
       filteredEvents.foreach(event =>
         val startingTime = event.startingTimeFormat
-
         val hour = startingTime.getHour
-        val slotContainer = dailyContentBoxes(hour - 1)
 
-        event.getCategory match
-          case Some(category) =>
-            val color = category.getColor
-            val colorString = s"rgb(${color.getRed * 255},${color.getGreen * 255},${color.getBlue * 255})"
-            slotContainer.setStyle(s"-fx-background-color: $colorString")
-          case None =>
-            slotContainer.setStyle("-fx-background-color: LightBlue")
+        def setCategoryColor(slotContainer: HBox) = event.getCategory match
+           case Some(category) =>
+             val color = category.getColor
+             val colorString = s"rgb(${color.getRed * 255},${color.getGreen * 255},${color.getBlue * 255})"
+              slotContainer.setStyle(s"-fx-background-color: $colorString")
+           case None =>
+              slotContainer.setStyle("-fx-background-color: LightSkyBlue")
 
-        val label = new Label(event.getName)
-        slotContainer.getChildren.add(label))
+        if (event.allDay) then
+      // If it's an all-day event, add it to the last container
+          val slotContainer = dailyContentBoxes(24)
+          val label = new Label(event.getName)
+          slotContainer.getChildren.add(label)
+          setCategoryColor(slotContainer)
+        else
+      // Otherwise, add it to the appropriate hour container
+         val slotContainer = dailyContentBoxes(hour)
+         setCategoryColor(slotContainer)
+         val label = new Label(event.getName)
+         slotContainer.getChildren.add(label)
+
+  )
 
     def updateDailyView(): Unit =
       updateEventsOnDailyView(weeklyView.chosenDay)
@@ -457,6 +490,7 @@ object CalendarGUI extends JFXApp3:
     dailyTimeBoxes(21).children.add(new Label("21:00") { font = customFont })
     dailyTimeBoxes(22).children.add(new Label("22:00") { font = customFont })
     dailyTimeBoxes(23).children.add(new Label("23:00") { font = customFont })
+    dailyTimeBoxes(24).children.add(new Label("all day events") { font = Font.loadFont("file:src/resources/Evafiya-Font/Evafiya.ttf", 14) })
 
     // adds the content to the dialy view
     rootDay.add(goBackBox, 0, 0, 1, 1)
@@ -487,6 +521,7 @@ object CalendarGUI extends JFXApp3:
     rootDay.add(dailyTimeBoxes(21), 1, 22, 1, 1)
     rootDay.add(dailyTimeBoxes(22), 1, 23, 1, 1)
     rootDay.add(dailyTimeBoxes(23), 1, 24, 1, 1)
+    rootDay.add(dailyTimeBoxes(24), 1, 25, 1, 1)
     rootDay.add(dailyContentBoxes(0), 2, 1, 1, 1)
     rootDay.add(dailyContentBoxes(1), 2, 2, 1, 1)
     rootDay.add(dailyContentBoxes(2), 2, 3, 1, 1)
@@ -511,9 +546,10 @@ object CalendarGUI extends JFXApp3:
     rootDay.add(dailyContentBoxes(21), 2, 22, 1, 1)
     rootDay.add(dailyContentBoxes(22), 2, 23, 1, 1)
     rootDay.add(dailyContentBoxes(23), 2, 24, 1, 1)
+    rootDay.add(dailyContentBoxes(24), 2, 25, 1, 1)
 
     rootDay.columnConstraints = Array(goBackColumn, dailyTimeColumn, dailyContentColumn, dailyMenuColumn) // Add constraints in order
-    rootDay.rowConstraints = Array(dailyHeaderRow, dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow)
+    rootDay.rowConstraints = Array(dailyHeaderRow, dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow)
 
     // creates the content for the "add event" view
     val eventBox = VBox()
@@ -585,6 +621,7 @@ object CalendarGUI extends JFXApp3:
             // nykyisellään ei lisää categories bufferiin,ei käytä addCategory-funktiota, pelkästään lisää items listaan, pitääkö korjata?
 
         val newEvent = Event(eventName.text(), eventStart.text(), eventEnd.text(), eventStartTime.text(), eventEndTime.text(), chosenCategory, Some(eventNotes.text()), reminderBoolean)
+        FileReader.addEventToFile(newEvent, "src/resources/userData.ics")
         calendarData.addEvent(newEvent)
         updateAddEventWindow()
         stage.scene = startScene
@@ -613,6 +650,45 @@ object CalendarGUI extends JFXApp3:
       reminderCheckBox,
       saveAndAddButton,
       eventGoBackButton)
+
+
+    val deleteEventBox = VBox()
+    val deleteEventHeader = Label("Delete an event. Required fields are marked with a *")
+
+    val deleteEventNameHeader = Label("Choose the event you want to delete*")
+    /** val deleteEventName = new ChoiceBox[String]:
+      items = ObservableBuffer(eventNames.mkString(" ")) */ 
+    val delEventName = TextField()
+    delEventName.promptText = "Name of your event*"
+
+    val deleventStartHeader = Label("Starting date of your event in the format dd.mm.yyyy*")
+    val deleventStart = TextField()
+    deleventStart.promptText = "Starting date of your event*"
+    val deleventStartTimeHeader = Label("Starting time of your event in the format hh.mm*")
+    val deleventStartTime = TextField()
+    eventStartTime.promptText = "Starting time of your event*"
+
+    val deleventEndHeader = Label("Ending date of your event in the format dd.mm.yyyy*")
+    val deleventEnd = TextField()
+    deleventEnd.promptText = "Ending date of your event "
+    val deleventEndTimeHeader = Label("Ending time of your event in the format hh.mm*")
+    val deleventEndTime = TextField()
+    deleventEndTime.promptText = "Ending time of your event*"
+
+    val delcategoryHeader = Label("Choose the category of your event")
+    var delcategoryNames = calendarData.currentCategories.map(_.getName) 
+    val delcategoryChoiceBox = new ChoiceBox[String]:
+      items = categoryNames
+    var delchosenCategory: Option[Category] = None
+    
+    val saveAndDeleteButton = new Button("Delete event"):
+      onAction = _ => 
+        println("deleted")
+        stage.scene = startScene
+
+    rootDeleteEvent.add(deleteEventBox, 0, 0, 1, 1)
+    deleteEventBox.children.addAll(deleteEventHeader, delEventName, deleventStartHeader, deleventStart, deleventStartTimeHeader, deleventStartTime, deleventEndHeader, deleventEnd, deleventEndTimeHeader, deleventEndTime, delcategoryHeader, delcategoryChoiceBox, saveAndDeleteButton)
+
 
   end start
 

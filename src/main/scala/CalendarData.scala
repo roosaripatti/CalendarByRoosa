@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 
 
 
-class CalendarData {
+class CalendarData:
   
   private var currentDateTime = LocalDateTime.now
   private var currentDate = LocalDate.now
@@ -22,14 +22,18 @@ class CalendarData {
   val currentEvents = Buffer[Event]()
   val publicHolidays: Buffer[Event] = FileReader.parseFile("src/resources/basic.ics")
   val currentCategories = ObservableBuffer[Category](schoolCategory, workCategory, hobbyCategory)
-  val categoriesMap: Map[String, Color] = currentCategories.map(_.getName).zip(Array(LightSalmon, LightPink, LightGreen)).toMap
+  
+  var eventsMap: Map[String, Event] = currentEvents.map(event =>
+    s"${event.getName}, starting: ${event.startingTimeFormat}, ending: ${event.endingTimeFormat}" -> event).toMap
+  var categoriesMap: Map[String, Color] = currentCategories.map(_.getName).zip(currentCategories.map(_.getColor)).toMap
 
   def addEvent(event: Event) = currentEvents += event
   def addCategory(category: Option[Category]) = 
     category match
-      case Some(cat) => 
+      case Some(cat) =>
         currentCategories += cat
+        // categoriesMap(cat.getName) = cat.getColor
+        categoriesMap = currentCategories.map(_.getName).zip(currentCategories.map(_.getColor)).toMap
       case None => currentCategories
 
-  
-}
+
