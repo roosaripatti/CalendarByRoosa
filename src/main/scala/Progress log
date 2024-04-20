@@ -1,5 +1,32 @@
 Progress log:
 
+20.4.2024
+Most significant changes made since the last meeting:
+- Added functionality: now you can add events and they can be seen both in the weekly and daily view
+- The user can add their own categories
+- The holidays are seen in the weekly view
+- The events are now added to a file which can be uploaded to another calendar
+- Events can be deleted and that also deletes them from the file
+
+Most significant issues currently:
+- No issues risen yet
+
+Time spent on the project so far:
+- Maybe 70 hours
+
+What next?
+- File reader: so that when opening the program it reads the events from a file and adds them to the GUI
+- Filtering the events on the weekly view
+- Making the daily view work better
+- "painting" with the mouse on the daily view
+- Error messages
+
+Questions
+- Instructions state "Voit käyttää eri värisävyjä osoittamaan tarkempaa jaottelua, esim. luennot tummanpunaisella, harjoitukset vaaleanpunaisella jne."
+    so is this voluntery?
+- About the grading: I want the grade 3, and i currently have almost everything for the easy project
+    so should i do a good easy project (3) vs a bad intermediate project (2) :D 
+
 9.4.2024
 
 Most significant changes made since the last meeting:

@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import scalafx.scene.paint.Color.*
 
-import java.io.{FileWriter}
+import java.io.FileWriter
 
 object FileReader:
   def parseFile(filePath: String): Buffer[Event] =
@@ -77,8 +77,37 @@ object FileReader:
 
     s"""BEGIN:VEVENT\nSUMMARY:${event.getName}\nSEQUENCE:0\nSTATUS:CONFIRMED\nTRANSP:TRANSPARENT\nDTSTART:$startDate\nDTEND:$endDate\n$categoryString${notesString}END:VEVENT """
 
+  def deleteEventFromFile(deletedEvent: Event, filepath: String): Unit =
+    val file = Source.fromFile(filepath)
+    val lines = file.getLines().toList
+    file.close()
+
+    val eventString = generateEventString(deletedEvent)
+
+    val eventLines = eventString.split("\n")
+
+    val eventIndices = eventLines.map(eventLine => lines.indexOf(eventLine))
+
+    val eventNotFound = eventIndices.contains(-1)
+
+    if (!eventNotFound) then
+      val updatedLines = lines.zipWithIndex.filterNot { case (_, index) => eventIndices.contains(index) }.map(_._1)
+      val updatedContent = updatedLines.mkString("\n")
+
+      val writer = new FileWriter(filepath)
+      try
+        writer.write(updatedContent)
+      finally
+        writer.close()
+
+    else
+      println("ERROR: Event not found in the file.")
+
+
+
 @main def filetester() =
   val event = Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)
   println(FileReader.generateEventString(Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)))
   println(FileReader.generateEventString(Event("työhaastattelu", "12.09.2003", "13.09.2003", "12.00", "23.59", Some(Category("work", Blue)), Some("lisätietoja"), true)))
   FileReader.addEventToFile(event, "src/resources/userData.ics")
+  FileReader.deleteEventFromFile(event, "src/resources/userData.ics")

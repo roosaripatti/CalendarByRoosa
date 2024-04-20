@@ -251,13 +251,11 @@ object CalendarGUI extends JFXApp3:
               slotContainer.setStyle("-fx-background-color: LightSkyBlue")
 
         if (event.allDay) then
-      // If it's an all-day event, add it to the last container
           val slotContainer = dailyContentBoxes(24)
           val label = new Label(event.getName)
           slotContainer.getChildren.add(label)
           setCategoryColor(slotContainer)
         else
-      // Otherwise, add it to the appropriate hour container
          val slotContainer = dailyContentBoxes(hour)
          setCategoryColor(slotContainer)
          val label = new Label(event.getName)
@@ -651,7 +649,6 @@ object CalendarGUI extends JFXApp3:
       saveAndAddButton,
       eventGoBackButton)
 
-
     val deleteEventBox = VBox()
     val deleteEventHeader = Label("Delete an event. Required fields are marked with a *")
 
@@ -664,30 +661,20 @@ object CalendarGUI extends JFXApp3:
     val deleventStartHeader = Label("Starting date of your event in the format dd.mm.yyyy*")
     val deleventStart = TextField()
     deleventStart.promptText = "Starting date of your event*"
-    val deleventStartTimeHeader = Label("Starting time of your event in the format hh.mm*")
-    val deleventStartTime = TextField()
-    eventStartTime.promptText = "Starting time of your event*"
 
     val deleventEndHeader = Label("Ending date of your event in the format dd.mm.yyyy*")
     val deleventEnd = TextField()
     deleventEnd.promptText = "Ending date of your event "
-    val deleventEndTimeHeader = Label("Ending time of your event in the format hh.mm*")
-    val deleventEndTime = TextField()
-    deleventEndTime.promptText = "Ending time of your event*"
-
-    val delcategoryHeader = Label("Choose the category of your event")
-    var delcategoryNames = calendarData.currentCategories.map(_.getName) 
-    val delcategoryChoiceBox = new ChoiceBox[String]:
-      items = categoryNames
-    var delchosenCategory: Option[Category] = None
     
     val saveAndDeleteButton = new Button("Delete event"):
       onAction = _ => 
-        println("deleted")
+        val deletedEvent = calendarData.eventsMap(s"${delEventName.text()}_${deleventStart.text()}_${deleventEnd.text()}")
+        calendarData.removeEvent(deletedEvent)
+        FileReader.deleteEventFromFile(deletedEvent, "src/resources/userData.ics")
+        updateEventsOnWeeklyView()
         stage.scene = startScene
-
     rootDeleteEvent.add(deleteEventBox, 0, 0, 1, 1)
-    deleteEventBox.children.addAll(deleteEventHeader, delEventName, deleventStartHeader, deleventStart, deleventStartTimeHeader, deleventStartTime, deleventEndHeader, deleventEnd, deleventEndTimeHeader, deleventEndTime, delcategoryHeader, delcategoryChoiceBox, saveAndDeleteButton)
+    deleteEventBox.children.addAll(deleteEventHeader, deleteEventNameHeader, delEventName, deleventStartHeader, deleventStart, deleventEndHeader, deleventEnd,saveAndDeleteButton)
 
 
   end start

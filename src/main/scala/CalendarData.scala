@@ -7,8 +7,6 @@ import java.time.LocalDateTime
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-
-
 class CalendarData:
   
   private var currentDateTime = LocalDateTime.now
@@ -23,9 +21,9 @@ class CalendarData:
   val publicHolidays: Buffer[Event] = FileReader.parseFile("src/resources/basic.ics")
   val currentCategories = ObservableBuffer[Category](schoolCategory, workCategory, hobbyCategory)
   
-  var eventsMap: Map[String, Event] = currentEvents.map(event =>
-    s"${event.getName}, starting: ${event.startingTimeFormat}, ending: ${event.endingTimeFormat}" -> event).toMap
-  var categoriesMap: Map[String, Color] = currentCategories.map(_.getName).zip(currentCategories.map(_.getColor)).toMap
+  def eventsMap: Map[String, Event] = currentEvents.map(event =>
+    s"${event.getName}_${event.getStart}_${event.getEnd}" -> event).toMap
+  def categoriesMap: Map[String, Color] = currentCategories.map(_.getName).zip(currentCategories.map(_.getColor)).toMap
 
   def addEvent(event: Event) = currentEvents += event
   def addCategory(category: Option[Category]) = 
@@ -33,7 +31,9 @@ class CalendarData:
       case Some(cat) =>
         currentCategories += cat
         // categoriesMap(cat.getName) = cat.getColor
-        categoriesMap = currentCategories.map(_.getName).zip(currentCategories.map(_.getColor)).toMap
       case None => currentCategories
+
+  def removeEvent(event: Event): Unit =
+    currentEvents -= event
 
 
