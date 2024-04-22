@@ -1,23 +1,99 @@
 import scala.collection.mutable.Buffer
 import scala.io.Source
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime, LocalTime}
 import java.time.format.DateTimeFormatter
 import scalafx.scene.paint.Color.*
 
 import java.io.FileWriter
 
 object FileReader:
+
+  def parseAndFormatDate(dateString: String): String =
+    val dateFormatterInput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+    val dateFormatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+    val localDate = LocalDate.parse(dateString, dateFormatterInput)
+    localDate.format(dateFormatterOutput)
+
+  def parseAndFormatDateTimeDate(datetimeString: String): String =
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+    val dateTime = LocalDate.parse(datetimeString, formatter)
+    val formattedDate = DateTimeFormatter.ofPattern("dd.MM.yyyy").format(dateTime)
+    formattedDate
+
+  def parseAndFormatDateTimeTime(datetimeString: String): String =
+    val formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
+    val dateTime = LocalTime.parse(datetimeString.replace("yyyyMMdd'T'", "").replace("ss'Z'", ""), formatter)
+    val formattedTime = DateTimeFormatter.ofPattern("HH.mm").format(dateTime)
+    formattedTime
+
   def parseFile(filePath: String): Buffer[Event] =
     val eventsBuffer = Buffer[Event]()
-    val fileContents = Source.fromFile(filePath).getLines().toList
+    val file = Source.fromFile(filePath)
+    val fileContents = file.getLines().toList
+    file.close()
+
+    var name: Option[String] = None
+    var startingDate: Option[String] = None
+    var startingTime: Option[String] = None
+    var endingDate: Option[String] = None
+    var endingTime: Option[String] = None
+    var category: Option[Category] = None
+
+    for (line <- fileContents) do
+      if (line.startsWith("BEGIN:VEVENT")) then
+        name = None
+        startingDate = None
+        startingTime = None
+        endingDate = None
+        endingTime = None
+        category = None
+      else if (line.startsWith("SUMMARY:")) then
+        name = Some(line.substring("SUMMARY:".length).trim)
+      else if (line.startsWith("DTSTART;VALUE=DATE:")) then
+        val startDate = line.substring("DTSTART;VALUE=DATE:".length).trim
+        startingDate = Some(parseAndFormatDate(startDate))
+        startingTime = Some("ALLDAY")
+      else if (line.startsWith("DTSTART:")) then
+        val startDate = line.substring("DTSTART:".length).trim
+        startingDate = Some(parseAndFormatDateTimeDate(startDate))
+        startingTime = Some(parseAndFormatDateTimeTime(startDate))
+      else if (line.startsWith("DTEND;VALUE=DATE:")) then
+        val endDate = line.substring("DTEND;VALUE=DATE:".length).trim
+        endingDate = Some(parseAndFormatDate(endDate))
+        endingTime = Some("ALLDAY")
+      else if (line.startsWith("DTEND:")) then
+        val endDate = line.substring("DTEND:".length).trim
+        endingDate = Some(parseAndFormatDateTimeDate(endDate))
+        endingTime = Some(parseAndFormatDateTimeTime(endDate))
+      else if (line.startsWith("CATEGORIES:")) then
+        val content = line.substring("CATEGORIES:".length).trim
+        if content == "school" then category = Some(Category("school", LightSalmon))
+        else if content == "work" then category = Some(Category("work", LightPink))
+        else if content == "hobby" then category = Some(Category("hobby", LightGreen))
+        else category = Some(Category(content, LightGreen))
+      else if (line.startsWith("END:VEVENT")) then
+        for {
+          eventName <- name
+          startDate <- startingDate
+          startTime <- startingTime
+          endDate <- endingDate
+          endTime <- endingTime
+        } do
+          eventsBuffer += Event(eventName, startDate, endDate, startTime, endTime, category, None, false)
+    eventsBuffer
+
+  def parseHolidayFile(filePath: String): Buffer[Event] =
+    val eventsBuffer = Buffer[Event]()
+    val file = Source.fromFile(filePath)
+    val fileContents = file.getLines().toList
+    file.close()
+
     var name: Option[String] = None
     var startingDate: Option[String] = None
     var endingDate: Option[String] = None
 
     for (line <- fileContents) do
-
       if (line.startsWith("BEGIN:VEVENT")) then
-
         name = None
         startingDate = None
         endingDate = None
@@ -27,7 +103,6 @@ object FileReader:
         val startDate = line.substring("DTSTART;VALUE=DATE:".length).trim
         startingDate = Some(parseAndFormatDate(startDate))
         endingDate = Some(parseAndFormatDate(startDate))
-
       else if (line.startsWith("END:VEVENT")) then
         for {
           eventName <- name
@@ -35,15 +110,7 @@ object FileReader:
           endDate <- endingDate
         } do
           eventsBuffer += Event(eventName, startDate, endDate, "ALLDAY", "ALLDAY", Some(Category(eventName, LightSkyBlue)), None, false)
-
-
     eventsBuffer
-
-  def parseAndFormatDate(dateString: String): String =
-    val dateFormatterInput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
-    val dateFormatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    val localDate = LocalDate.parse(dateString, dateFormatterInput)
-    localDate.format(dateFormatterOutput)
 
   def addEventToFile(event: Event, pathToFile: String): Unit =
     val eventString = generateEventString(event)
@@ -67,47 +134,61 @@ object FileReader:
 
   def generateEventString(event: Event): String =
     val formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm00'Z'")
-    val startDate = if (event.allDay) LocalDate.parse(event.getStart, DateTimeFormatter.ofPattern("dd.MM.yyyy")).format(DateTimeFormatter.BASIC_ISO_DATE)
-      else event.startingTimeFormat.format(formatter)
-    val endDate = if (event.allDay) LocalDate.parse(event.getEnd, DateTimeFormatter.ofPattern("dd.MM.yyyy")).format(DateTimeFormatter.BASIC_ISO_DATE)
-      else event.endingTimeFormat.format(formatter)
+    val dateStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmm"))
+
+    val startDate =
+        if (event.allDay) then
+          val start = LocalDate.parse(event.getStart, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+          s"DTSTART;VALUE=DATE:${start.format(DateTimeFormatter.BASIC_ISO_DATE)}"
+        else
+          s"DTSTART:${event.startingTimeFormat.format(formatter)}"
+    val endDate =
+      if (event.allDay) then
+        val end = LocalDate.parse(event.getEnd, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+        s"DTEND;VALUE=DATE:${end.format(DateTimeFormatter.BASIC_ISO_DATE)}"
+      else
+        s"DTEND:${event.endingTimeFormat.format(formatter)}"
 
     val categoryString = event.getCategory.map(category => s"CATEGORIES:${category.getName}\n").getOrElse("")
     val notesString = event.getNotes.map(notes => s"DESCRIPTION:$notes\n").getOrElse("")
 
-    s"""BEGIN:VEVENT\nSUMMARY:${event.getName}\nSEQUENCE:0\nSTATUS:CONFIRMED\nTRANSP:TRANSPARENT\nDTSTART:$startDate\nDTEND:$endDate\n$categoryString${notesString}END:VEVENT """
+    s"""BEGIN:VEVENT\nSUMMARY:${event.getName}\nUID:user1234\nDTSTAMP:$dateStamp\n$startDate\n$endDate\n$categoryString${notesString}END:VEVENT"""
 
   def deleteEventFromFile(deletedEvent: Event, filepath: String): Unit =
     val file = Source.fromFile(filepath)
     val lines = file.getLines().toList
     file.close()
-
     val eventString = generateEventString(deletedEvent)
-
     val eventLines = eventString.split("\n")
-
     val eventIndices = eventLines.map(eventLine => lines.indexOf(eventLine))
-
     val eventNotFound = eventIndices.contains(-1)
 
     if (!eventNotFound) then
       val updatedLines = lines.zipWithIndex.filterNot { case (_, index) => eventIndices.contains(index) }.map(_._1)
       val updatedContent = updatedLines.mkString("\n")
-
       val writer = new FileWriter(filepath)
       try
         writer.write(updatedContent)
       finally
         writer.close()
-
     else
       println("ERROR: Event not found in the file.")
 
 
 
 @main def filetester() =
-  val event = Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)
-  println(FileReader.generateEventString(Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)))
-  println(FileReader.generateEventString(Event("työhaastattelu", "12.09.2003", "13.09.2003", "12.00", "23.59", Some(Category("work", Blue)), Some("lisätietoja"), true)))
-  FileReader.addEventToFile(event, "src/resources/userData.ics")
-  FileReader.deleteEventFromFile(event, "src/resources/userData.ics")
+  //println(FileReader.parseHolidayFile("src/resources/basic.ics").map(_.getName))
+  //println(FileReader.parseHolidayFile("src/resources/basic.ics").map(_.getStart))
+
+  println(FileReader.parseFile("src/resources/userData.ics").map(_.getName))
+  println(FileReader.parseFile("src/resources/userData.ics").map(_.getStart))
+  println(FileReader.parseFile("src/resources/userData.ics").map(_.getEnd))
+  println(FileReader.parseFile("src/resources/userData.ics").map(_.startingTimeOnly))
+  println(FileReader.parseFile("src/resources/userData.ics").map(_.endingTimeOnly))
+
+  //val event = Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)
+  //println(FileReader.generateEventString(Event("treenit", "12.09.2003", "13.09.2003", "ALLDAY", "ALLDAY", Some(Category("hobby", Blue)), Some("lisätietoja"), false)))
+  //println(FileReader.generateEventString(Event("työhaastattelu", "12.09.2003", "13.09.2003", "12.00", "23.59", Some(Category("work", Blue)), Some("lisätietoja"), true)))
+  //FileReader.addEventToFile(event, "src/resources/userData.ics")
+  //FileReader.deleteEventFromFile(event, "src/resources/userData.ics")
+
