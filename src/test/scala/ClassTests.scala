@@ -1,10 +1,10 @@
-val testiviikko = CalendarView()
+
 //val testipäivä = DailyView()
 
 def testataanviikko() =
-  println("viikon eka päivä on " + testiviikko.mondayNumber)
-  println("viikon vika päivä on " + testiviikko.sundayNumber)
-  println("eletään viikkoa " + testiviikko.weekNumber)
-  println("tänään on " + testiviikko.chosenWeekday)
-  println("päivä on " + testiviikko.currentDate)
+  println("viikon eka päivä on " + CalendarView.mondayNumber)
+  println("viikon vika päivä on " + CalendarView.sundayNumber)
+  println("eletään viikkoa " + CalendarView.weekNumber)
+  println("tänään on " + CalendarView.chosenWeekday)
+
 

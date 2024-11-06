@@ -21,8 +21,8 @@ object CalendarGUI extends JFXApp3:
 
   // stores some information in variables
   val openSansFont = Font("Open Sans", 10)
-  var eventNames = CalendarData.eventsMap.keys
-  var categoryNames = CalendarData.currentCategories.map(_.getName)
+  private var eventNames = CalendarData.eventsMap.keys
+  private var categoryNames = CalendarData.currentCategories.map(_.getName)
 
   def start() =
 
@@ -166,7 +166,7 @@ object CalendarGUI extends JFXApp3:
     // iterates through each day between starting and ending date of the week
         var currentDate = eventStartingDate
         while (!currentDate.isAfter(eventEndingDate)) do
-          if (!currentDate.isBefore(CalendarView.startTime) && !currentDate.isAfter(CalendarView.endTime)) then
+          if (!currentDate.isBefore(CalendarView.getStartTime) && !currentDate.isAfter(CalendarView.getEndTime)) then
            val dayOfWeek = currentDate.getDayOfWeek
            val eventName = event.getName
 
@@ -375,49 +375,49 @@ object CalendarGUI extends JFXApp3:
     // labels of each day in the daily view
     val mondayText = new Label("monday  " + CalendarView.mondayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime
+        CalendarView.chosenDay = CalendarView.getStartTime
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val tuesdayText = new Label("tuesday  " + CalendarView.tuesdayNumber + "." ):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(1)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(1)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val wednesdayText = new Label("wednesday  " + CalendarView.wednesdayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(2)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(2)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val thursdayText = new Label("thursday  " + CalendarView.thursdayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(3)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(3)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val fridayText = new Label("friday  " + CalendarView.fridayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(4)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(4)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val saturdayText = new Label("saturday  " + CalendarView.saturdayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(5)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(5)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
         stage.scene = dayScene
     val sundayText = new Label("sunday  " + CalendarView.sundayNumber + "."):
       onMouseClicked = (event) =>
-        CalendarView.chosenDay = CalendarView.startTime.plusDays(6)
+        CalendarView.chosenDay = CalendarView.getStartTime.plusDays(6)
         CalendarView.chosenDayString = CalendarView.chosenDay.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
         updateDailyHeaderText()
         updateDailyView()
@@ -568,7 +568,7 @@ object CalendarGUI extends JFXApp3:
     mainMenuBar.style = "-fx-background-color: transparent"
     addEventButton.style = "-fx-background-color: transparent"
 
-    // adds and styles the labels for the daily time boxes 
+    // adds and styles the labels for the daily time boxes
     val customFont = Font.loadFont("file:src/resources/Evafiya-Font/Evafiya.ttf", 20)
     dailyTimeBoxes(0).children.add(new Label("0:00"){ font = customFont })
     dailyTimeBoxes(1).children.add(new Label("1:00"){ font = customFont })
@@ -653,7 +653,7 @@ object CalendarGUI extends JFXApp3:
     rootDay.add(dailyContentBoxes(24), 2, 25, 1, 1)
 
     // adds constraints in order
-    rootDay.columnConstraints = Array(goBackColumn, dailyTimeColumn, dailyContentColumn, dailyMenuColumn) 
+    rootDay.columnConstraints = Array(goBackColumn, dailyTimeColumn, dailyContentColumn, dailyMenuColumn)
     rootDay.rowConstraints = Array(dailyHeaderRow, dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow, dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow,dailyContentRow)
 
     // creates the content for the "add event" view
@@ -786,18 +786,18 @@ object CalendarGUI extends JFXApp3:
            eventNotes.text() match
               case "" => notesOption = None
               case notes => notesOption = Some(notes)
-          // based on the previous data, creates a new event object and adds that to the file, calendardata and updates the views 
+          // based on the previous data, creates a new event object and adds that to the file, calendardata and updates the views
            val newEvent = Event(eventName.text(), eventStart.text(), eventEnd.text(), eventStartTime.text(), eventEndTime.text(), chosenCategory, notesOption, reminderBoolean)
            FileReader.addEventToFile(newEvent, "src/resources/userData.ics")
            CalendarData.addEvent(newEvent)
            updateAddEventWindow()
            stage.scene = startScene
            updateEventsOnWeeklyView(None)
-           
+
     val eventGoBackButton = new Button("Cancel"):
       onAction = _ => stage.scene = startScene
 
-    // adds the content to the "add event" view 
+    // adds the content to the "add event" view
     rootEvent.center = eventBox
     eventBox.children.addAll(eventHeader,
       eventNameHeader,
@@ -858,14 +858,14 @@ object CalendarGUI extends JFXApp3:
 
 
     // this code adds the feature where you can paint with the mouse in the daily view to add an event
-    // however i didn't have time to complete it so now this only works partly: you can drag the mouse and it creates a new event with the correct starting day&time, 
+    // however i didn't have time to complete it so now this only works partly: you can drag the mouse and it creates a new event with the correct starting day&time,
     // but the ending time is the same
     var dragStart: Int = 0
     var dragEnd: Int = 0
     for ((box, index) <- dailyContentBoxes.zipWithIndex) do
-      box.setOnMousePressed(event => 
+      box.setOnMousePressed(event =>
         dragStart = index )
-      box.setOnMouseReleased(event => 
+      box.setOnMouseReleased(event =>
         dragEnd = index
         stage.scene = eventScene
         def formattedHour =

@@ -9,11 +9,14 @@ import java.time.temporal.ChronoUnit
 
 // this object keeps count of which week / day the user is currently watching 
 object CalendarView:
-  var currentTime = LocalDateTime.now
-  var currentDate = LocalDate.now
+  private var currentTime = LocalDateTime.now
+  private var currentDate = LocalDate.now
   // gets the "LocalDate" of the current weeks monday and sunday. these are not private since CalendarGUI needs to be able to change them according to the currently viewed week.
-  var startTime = currentDate.`with`(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
-  var endTime = currentDate.`with`(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+  private var startTime = currentDate.`with`(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+  private var endTime = currentDate.`with`(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+  
+  def getStartTime = startTime
+  def getEndTime = endTime
 
   val weekFields = WeekFields.of(Locale.getDefault())
   def weekNumber = startTime.get(weekFields.weekOfWeekBasedYear())
